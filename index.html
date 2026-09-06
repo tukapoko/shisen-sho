@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d2b25">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="四川省">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>四川省 - iPhone全画面対応版 V16</title>
+<style>
+:root{
+  --cols:12;
+  --rows:8;
+  --tile-w: clamp(50px, 5.9vw, 74px);
+  --tile-h: calc(var(--tile-w) * 1.34);
+  --gap: 5px;
+  --bg:#0d2b25;
+  --panel:rgba(255,255,255,.10);
+  --panel-border:rgba(255,255,255,.16);
+  --text:#f8fafc;
+  --muted:#cbd5e1;
+  --accent:#ffd84d;
+  --ok:#4ade80;
+}
+*{box-sizing:border-box}
+html{background:#071a17;-webkit-text-size-adjust:100%;}
+body{
+  margin:0; min-height:100vh; min-height:100dvh;
+  padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI",Meiryo,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at 20% 0%,rgba(255,255,255,.08),transparent 35%),
+    linear-gradient(145deg,#071a17,#123f35 55%,#0b2922);
+}
+.app{max-width:1200px;margin:0 auto}
+header{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+h1{margin:0;font-size:clamp(28px,4vw,44px);letter-spacing:.08em}
+.sub{margin-top:4px;color:var(--muted);font-size:13px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.stat{min-width:96px;text-align:center;padding:8px 11px;border:1px solid var(--panel-border);border-radius:12px;background:var(--panel)}
+.stat b{display:block;font-size:19px}
+.stat span{font-size:11px;color:var(--muted)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+button.ui{
+  -webkit-appearance:none;appearance:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  min-height:44px;
+  border:0;border-radius:10px;padding:10px 15px;font-weight:800;cursor:pointer;
+  background:#f8fafc;color:#0f172a;box-shadow:0 5px 14px rgba(0,0,0,.2)
+}
+button.ui:hover{transform:translateY(-1px)}
+button.ui.secondary{background:#dcfce7}
+button.ui.undo{background:#dbeafe}
+button.ui.fullscreen{background:#e9d5ff}
+button.ui:disabled{opacity:.45;cursor:default;transform:none}
+.message{min-height:27px;margin:8px 0 10px;color:#e5e7eb;font-size:14px;font-weight:700}
+.board-shell{
+  position:relative;display:inline-block;padding:16px;border-radius:18px;
+  background:rgba(0,0,0,.28);border:1px solid var(--panel-border);
+  box-shadow:0 22px 50px rgba(0,0,0,.28)
+}
+#board{
+  display:grid;grid-template-columns:repeat(var(--cols),var(--tile-w));
+  grid-template-rows:repeat(var(--rows),var(--tile-h));gap:var(--gap);position:relative
+}
+.tile{
+  width:var(--tile-w);height:var(--tile-h);padding:0;border:0.8px solid #d9d5ca;border-radius:7px;
+  background:linear-gradient(95deg,#fffffd 0%,#f7f6f1 67%,#ded9cd 100%);
+  cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.74),
+    inset -2px -2px 0 rgba(0,0,0,.045),
+    0 3px 0 #a39f95,
+    0 5px 10px rgba(0,0,0,.25);
+  transition:transform .1s ease,filter .1s ease,opacity .14s ease;
+}
+.tile:hover{transform:translateY(-2px);filter:brightness(1.04)}
+.tile.selected{
+  outline:4px solid var(--accent);
+  transform:translateY(-2px) scale(1.035);
+  box-shadow:0 0 0 2px rgba(255,216,77,.22),0 4px 0 #8a711c
+}
+.tile.hint{animation:pulse .7s ease-in-out infinite alternate}
+@keyframes pulse{from{outline:2px solid rgba(74,222,128,.25)}to{outline:5px solid var(--ok)}}
+.tile.removed{visibility:hidden;pointer-events:none}
+.svgWrap{width:100%;height:100%;padding:0;margin:0}
+.tile svg{display:block;width:100%;height:100%}
+
+#pathSvg{
+  position:absolute;inset:0;width:100%;height:100%;
+  pointer-events:none;overflow:visible;z-index:10
+}
+#pathLine{
+  fill:none;stroke:#ff5a79;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 4px white)
+}
+.rules{
+  margin-top:14px;padding:13px 15px;border-radius:14px;background:var(--panel);
+  border:1px solid var(--panel-border);font-size:13px;line-height:1.75;color:#e2e8f0
+}
+.overlay{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(2,6,23,.76);z-index:50
+}
+.overlay.show{display:flex}
+.card{
+  width:min(460px,100%);padding:28px;border-radius:20px;background:#fff;color:#0f172a;
+  text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.42)
+}
+.card h2{margin:0 0 10px;font-size:31px}
+.card p{line-height:1.7;color:#334155}
+.card .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.card .danger{background:#fee2e2;color:#991b1b}
+.card .recover{background:#dcfce7;color:#166534}
+.end-note{font-size:13px;color:#64748b;margin-top:12px}
+@media (orientation:landscape) and (max-height:500px) and (pointer:coarse){
+  :root{
+    --cols:12;
+    --rows:8;
+    --gap:2px;
+
+    /*
+      横向きでも牌の縦横比を固定。
+      画面の高さを基準に横幅を縮めることで、8段すべてを1画面に収める。
+    */
+    --tile-w:min(36px, 4.35vw, 8.45dvh);
+    --tile-h:calc(var(--tile-w) * 1.34);
+  }
+  html,body{width:100%;height:100%;overflow:hidden}
+  body{
+    min-height:100dvh;
+    padding:max(4px,env(safe-area-inset-top))
+            max(4px,env(safe-area-inset-right))
+            max(4px,env(safe-area-inset-bottom))
+            max(4px,env(safe-area-inset-left));
+  }
+  .app{
+    position:relative;
+    width:100%;
+    max-width:none;
+    height:calc(100dvh - max(4px,env(safe-area-inset-top)) - max(4px,env(safe-area-inset-bottom)));
+    margin:0;
+  }
+
+  header{
+    position:absolute;
+    z-index:20;
+    right:0;
+    top:0;
+    width:154px;
+    display:block;
+    margin:0;
+  }
+  h1{font-size:20px;line-height:1;margin:0}
+  .sub{font-size:9px;line-height:1.2;margin-top:3px}
+  .stats{
+    width:154px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:3px;
+    margin-top:6px;
+  }
+  .stat{min-width:0;padding:4px 2px;border-radius:7px}
+  .stat b{font-size:14px;line-height:1.05}
+  .stat span{font-size:8px}
+
+  .toolbar{
+    position:absolute;
+    z-index:20;
+    right:0;
+    top:78px;
+    width:154px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:4px;
+    margin:0;
+    padding:0;
+  }
+  .toolbar #newBtn{grid-column:1 / -1}
+  .toolbar #fullscreenBtn{grid-column:1 / -1}
+  button.ui{
+    min-height:34px;
+    padding:5px 4px;
+    border-radius:8px;
+    font-size:11px;
+    box-shadow:0 3px 8px rgba(0,0,0,.18);
+  }
+
+  .message{
+    position:absolute;
+    z-index:20;
+    right:0;
+    bottom:4px;
+    width:154px;
+    min-height:0;
+    margin:0;
+    font-size:10px;
+    line-height:1.35;
+  }
+
+  .board-shell{
+    position:absolute;
+    /*
+      右側の操作欄を除いた左エリアの中央へ配置。
+      牌自体は縦横比を固定し、横方向の空きを使って見やすく配置する。
+    */
+    left:calc((100% - 162px) / 2);
+    top:50%;
+    transform:translate(-50%,-50%);
+    padding:3px;
+    border-radius:9px;
+    box-shadow:0 8px 18px rgba(0,0,0,.24);
+  }
+  #board{gap:var(--gap)}
+  .tile{
+    border-radius:4px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.7),
+      0 1px 0 #a39f95,
+      0 2px 4px rgba(0,0,0,.20);
+  }
+  .tile.selected{outline-width:3px;transform:scale(1.025)}
+  #pathLine{stroke-width:3}
+  .rules{display:none}
+
+  .overlay{
+    padding:max(8px,env(safe-area-inset-top))
+            max(12px,env(safe-area-inset-right))
+            max(8px,env(safe-area-inset-bottom))
+            max(12px,env(safe-area-inset-left));
+  }
+  .card{
+    width:min(420px,72vw);
+    padding:16px;
+    border-radius:15px;
+  }
+  .card h2{font-size:22px;margin-bottom:5px}
+  .card p{font-size:12px;line-height:1.45;margin:6px 0}
+  .card .actions{display:flex;gap:7px;margin-top:10px}
+  .card .actions button{min-height:40px}
+}
+
+.rotate-prompt{display:none}
+@media (orientation:portrait) and (pointer:coarse){
+  .rotate-prompt{
+    position:fixed;
+    inset:0;
+    z-index:100;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:max(24px,env(safe-area-inset-top))
+            max(24px,env(safe-area-inset-right))
+            max(24px,env(safe-area-inset-bottom))
+            max(24px,env(safe-area-inset-left));
+    background:linear-gradient(145deg,#071a17,#123f35 55%,#0b2922);
+    color:#fff;
+    text-align:center;
+  }
+  .rotate-prompt .rotate-card{
+    max-width:320px;
+    padding:24px 20px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:18px;
+    background:rgba(255,255,255,.08);
+  }
+  .rotate-icon{
+    display:block;
+    font-size:48px;
+    line-height:1;
+    margin-bottom:14px;
+  }
+  .rotate-prompt b{font-size:20px}
+  .rotate-prompt p{margin:10px 0 0;color:#dbeafe;font-size:13px;line-height:1.55}
+}
+
+
+@media (orientation:landscape) and (pointer:coarse) and (display-mode:standalone){
+  :root{
+    --tile-w:min(39px,4.55vw,9.05dvh);
+    --tile-h:calc(var(--tile-w) * 1.34);
+  }
+}
+html.fullscreen-game:fullscreen,
+html.fullscreen-game:fullscreen body{
+  width:100%;
+  height:100%;
+}
+html.fullscreen-game:fullscreen body{
+  background:linear-gradient(145deg,#071a17,#123f35 55%,#0b2922);
+}
+.fullscreen-guide{
+  font-size:12px;
+  color:#64748b;
+}
+
+@media (hover:none){
+  .tile:hover,button.ui:hover{transform:none;filter:none}
+}
+</style>
+</head>
+<body>
+<div class="rotate-prompt" aria-live="polite">
+  <div class="rotate-card">
+    <span class="rotate-icon">↻</span>
+    <b>iPhoneを横向きにしてください</b>
+    <p>このゲームは12列×8行の盤面を見やすく表示するため、横向きで遊ぶように調整しています。</p>
+  </div>
+</div>
+<div class="app">
+  <header>
+    <div>
+      <h1>四川省</h1>
+      <div class="sub">麻雀牌版 / iPhone全画面対応 V16</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="pairs">48</b><span>残りペア</span></div>
+      <div class="stat"><b id="moves">0</b><span>消去回数</span></div>
+      <div class="stat"><b id="time">00:00</b><span>経過時間</span></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="ui" id="newBtn">新しいゲーム</button>
+    <button class="ui undo" id="undoBtn" disabled>1つ戻る</button>
+    <button class="ui secondary" id="hintBtn">ヒント</button>
+    <button class="ui" id="shuffleBtn" style="background:#fde68a">シャッフル</button>
+    <button class="ui fullscreen" id="fullscreenBtn">全画面</button>
+  </div>
+
+  <div class="message" id="message">同じ麻雀牌を2枚選んでください。</div>
+
+  <div class="board-shell" id="boardShell">
+    <div id="board"></div>
+    <svg id="pathSvg"><polyline id="pathLine" points=""></polyline></svg>
+  </div>
+
+  <div class="rules">
+    <b>ルール：</b>同じ牌を2枚選択し、ほかの牌を横切らずに<b>曲がり2回以内</b>でつながれば消せます。盤面の外側を通る経路も有効です。<br>
+    消せる組み合わせがなくなった場合はメッセージが表示され、<b>シャッフルして続ける</b>か<b>終了する</b>かを選べます。すべての牌を消すとクリアです。
+  </div>
+</div>
+
+<div class="overlay" id="noMovesOverlay">
+  <div class="card">
+    <h2>消せる組み合わせがありません</h2>
+    <p>現在の配置では、これ以上消せる牌がありません。</p>
+    <div class="actions">
+      <button class="ui undo" id="undoNoMovesBtn">1つ戻る</button>
+      <button class="ui" id="shuffleContinueBtn" style="background:#fde68a">シャッフルして続ける</button>
+      <button class="ui danger" id="endNoMovesBtn">終了する</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="fullscreenHelp">
+  <div class="card">
+    <h2>全画面表示について</h2>
+    <p id="fullscreenHelpText">この環境ではブラウザの全画面機能を直接使用できません。</p>
+    <p class="fullscreen-guide">iPhoneでは、このゲームをホーム画面に追加してホーム画面から起動すると、Safariのアドレスバーなどを表示せずに遊べます。</p>
+    <div class="actions">
+      <button class="ui" id="closeFullscreenHelpBtn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="result">
+  <div class="card">
+    <h2 id="resultTitle">クリア！</h2>
+    <p id="resultText"></p>
+    <div class="actions"><button class="ui" id="againBtn">新しいゲーム</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ROWS = 8;
+  const COLS = 12;
+  document.documentElement.style.setProperty("--rows", ROWS);
+  document.documentElement.style.setProperty("--cols", COLS);
+  const NUM_JP=["","一","二","三","四","五","六","七","八","九"];
+
+  const TILE_TYPES = [
+    ...Array.from({length:9}, (_,i)=>({code:`m${i+1}`, suit:"man", rank:i+1, name:`${i+1}萬`})),
+    ...Array.from({length:9}, (_,i)=>({code:`p${i+1}`, suit:"pin", rank:i+1, name:`${i+1}筒`})),
+    ...Array.from({length:9}, (_,i)=>({code:`s${i+1}`, suit:"sou", rank:i+1, name:`${i+1}索`})),
+    {code:"east", suit:"honor", honor:"black", char:"東", name:"東"},
+    {code:"south", suit:"honor", honor:"black", char:"南", name:"南"},
+    {code:"west", suit:"honor", honor:"black", char:"西", name:"西"},
+    {code:"north", suit:"honor", honor:"black", char:"北", name:"北"},
+    {code:"white", suit:"honor", honor:"blank", char:"", name:"白"},
+    {code:"green", suit:"honor", honor:"green", char:"發", name:"發"},
+    {code:"red", suit:"honor", honor:"red", char:"中", name:"中"},
+  ];
+  const TILE_MAP = Object.fromEntries(TILE_TYPES.map(t=>[t.code,t]));
+
+  const boardEl=document.getElementById("board");
+  const shellEl=document.getElementById("boardShell");
+  const pairsEl=document.getElementById("pairs");
+  const movesEl=document.getElementById("moves");
+  const timeEl=document.getElementById("time");
+  const messageEl=document.getElementById("message");
+  const pathLine=document.getElementById("pathLine");
+  const resultEl=document.getElementById("result");
+  const resultTitle=document.getElementById("resultTitle");
+  const resultText=document.getElementById("resultText");
+  const hintBtn=document.getElementById("hintBtn");
+  const undoBtn=document.getElementById("undoBtn");
+  const undoNoMovesBtn=document.getElementById("undoNoMovesBtn");
+  const fullscreenBtn=document.getElementById("fullscreenBtn");
+  const fullscreenHelp=document.getElementById("fullscreenHelp");
+  const closeFullscreenHelpBtn=document.getElementById("closeFullscreenHelpBtn");
+  const noMovesOverlay=document.getElementById("noMovesOverlay");
+  const shuffleContinueBtn=document.getElementById("shuffleContinueBtn");
+  const endNoMovesBtn=document.getElementById("endNoMovesBtn");
+
+  const dirs=[[-1,0],[0,1],[1,0],[0,-1]];
+  let board=[],selected=null,moves=0,remaining=ROWS*COLS,startTime=0,timerId=null,locked=false,ended=false;
+  let actionHistory=[];
+
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [a[i],a[j]]=[a[j],a[i]];
+    }
+    return a;
+  }
+
+  function makeDeck(){
+    const pairPool=[];
+    for(const t of TILE_TYPES) pairPool.push(t.code, t.code);
+    shuffle(pairPool);
+    const chosenPairs = pairPool.slice(0, 48);
+    const deck = [];
+    for(const code of chosenPairs) deck.push(code, code);
+    return shuffle(deck);
+  }
+
+  function newGame(){
+    clearInterval(timerId);
+    selected=null; moves=0; remaining=ROWS*COLS; locked=false; ended=false; actionHistory=[];
+    pathLine.setAttribute("points","");
+    resultEl.classList.remove("show");
+    noMovesOverlay.classList.remove("show");
+    hintBtn.disabled=false;
+
+    let attempts=0;
+    do{
+      const deck=makeDeck();
+      board=Array.from({length:ROWS},(_,r)=>
+        Array.from({length:COLS},(_,c)=>({
+          value:deck[r*COLS+c],
+          active:true,
+          el:null
+        }))
+      );
+      attempts++;
+    }while(!findAnyMove() && attempts<100);
+
+    render();
+    updateStats();
+    updateUndoButtons();
+    message("同じ麻雀牌を2枚選んでください。");
+    startTime=Date.now();
+    timeEl.textContent="00:00";
+    timerId=setInterval(updateTimer,250);
+  }
+
+  function ring(x,y,size,color){
+    const accent = color === "#2563eb" ? "#ef4444" : "#2563eb";
+    let petals = "";
+    for(let i=0;i<8;i++){
+      const a = (Math.PI * 2 * i) / 8;
+      const px = Math.cos(a) * size * 0.96;
+      const py = Math.sin(a) * size * 0.96;
+      const pc = i % 2 === 0 ? color : accent;
+      petals += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="${(size*0.14).toFixed(2)}" fill="${pc}"/>`;
+    }
+    return `
+      <g transform="translate(${x} ${y})">
+        <circle cx="0" cy="0" r="${(size*1.08).toFixed(2)}" fill="white" stroke="#d4d8de" stroke-width="0.8"/>
+        ${petals}
+        <circle cx="0" cy="0" r="${(size*0.90).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.19).toFixed(2)}"/>
+        <circle cx="0" cy="0" r="${(size*0.56).toFixed(2)}" fill="white" stroke="${accent}" stroke-width="${(size*0.09).toFixed(2)}" stroke-dasharray="${(size*0.24).toFixed(2)} ${(size*0.12).toFixed(2)}" stroke-linecap="round"/>
+        <circle cx="0" cy="0" r="${(size*0.27).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.08).toFixed(2)}"/>
+        <circle cx="0" cy="0" r="${(size*0.12).toFixed(2)}" fill="${accent}"/>
+      </g>`;
+  }
+
+  function bamboo(x,y,h,accent=false){
+    const fill = accent ? "#ef4444" : "#18a05b";
+    return `
+      <g transform="translate(${x} ${y})">
+        <rect x="0" y="0" width="10" height="${h}" rx="3" fill="${fill}" stroke="${accent ? '#c81e1e' : '#0f8a50'}" stroke-width="1"/>
+        <rect x="1.5" y="${h*0.28}" width="7" height="3" rx="1.5" fill="${accent ? '#fff4f4' : '#ffe7e7'}"/>
+        <rect x="1.5" y="${h*0.62}" width="7" height="3" rx="1.5" fill="${accent ? '#fff4f4' : '#ffe7e7'}"/>
+      </g>`;
+  }
+
+  function tileBaseSvg(inner){
+    return `
+      <svg viewBox="0 0 100 136" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="tileFaceGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#fbfaf6"/>
+          </linearGradient>
+        </defs>
+        <rect x="10.5" y="8.5" width="79" height="116" rx="5.5" fill="url(#tileFaceGrad)" stroke="#ebe6da" stroke-width="0.95"/>
+        ${inner}
+      </svg>`;
+  }
+
+  function manSvg(rank){
+    const big = NUM_JP[rank];
+    return tileBaseSvg(`
+      <g transform="translate(0 4)">
+        <text x="50" y="56" text-anchor="middle" font-size="34" font-weight="700" fill="#111827" font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">${big}</text>
+        <text x="50" y="88" text-anchor="middle" font-size="24" font-weight="700" fill="#d62839" font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">萬</text>
+      </g>
+    `);
+  }
+
+  function pinLayout(rank){
+    return {
+      1:[[50,45,12.5,"#2563eb"],[32,27,5.2,"#2563eb"],[68,27,5.2,"#ef4444"],[32,63,5.2,"#ef4444"],[68,63,5.2,"#2563eb"]],
+      2:[[50,29,6.5,"#2563eb"],[50,61,6.5,"#2563eb"]],
+      3:[[28,29,6.5,"#2563eb"],[50,45,6.5,"#ef4444"],[72,61,6.5,"#2563eb"]],
+      4:[[28,28,6.5,"#2563eb"],[72,28,6.5,"#2563eb"],[28,62,6.5,"#ef4444"],[72,62,6.5,"#ef4444"]],
+      5:[[28,28,6.3,"#2563eb"],[72,28,6.3,"#2563eb"],[50,45,6.3,"#ef4444"],[28,62,6.3,"#ef4444"],[72,62,6.3,"#ef4444"]],
+      6:[[28,20,6.2,"#2563eb"],[72,20,6.2,"#ef4444"],[28,45,6.2,"#2563eb"],[72,45,6.2,"#ef4444"],[28,70,6.2,"#2563eb"],[72,70,6.2,"#ef4444"]],
+      7:[[28,20,6.0,"#2563eb"],[72,20,6.0,"#ef4444"],[28,45,6.0,"#2563eb"],[50,45,6.0,"#ef4444"],[72,45,6.0,"#ef4444"],[28,70,6.0,"#2563eb"],[72,70,6.0,"#ef4444"]],
+      8:[[28,16,5.8,"#2563eb"],[72,16,5.8,"#ef4444"],[28,35,5.8,"#2563eb"],[72,35,5.8,"#ef4444"],[28,54,5.8,"#2563eb"],[72,54,5.8,"#ef4444"],[28,73,5.8,"#2563eb"],[72,73,5.8,"#ef4444"]],
+      9:[[28,18,5.7,"#2563eb"],[50,18,5.7,"#ef4444"],[72,18,5.7,"#2563eb"],[28,45,5.7,"#ef4444"],[50,45,5.7,"#2563eb"],[72,45,5.7,"#ef4444"],[28,72,5.7,"#2563eb"],[50,72,5.7,"#ef4444"],[72,72,5.7,"#2563eb"]],
+    }[rank];
+  }
+
+  function pinSvg(rank){
+    let body = "";
+    const add = (x,y,size,color) => body += ring(x,y,size,color);
+    switch(rank){
+      case 1:
+        add(50,48,12.0,"#2563eb");
+        add(32,30,5.0,"#2563eb");
+        add(68,30,5.0,"#ef4444");
+        add(32,66,5.0,"#ef4444");
+        add(68,66,5.0,"#2563eb");
+        break;
+      case 2:
+        add(50,34,6.3,"#2563eb");
+        add(50,66,6.3,"#2563eb");
+        break;
+      case 3:
+        add(31,33,5.9,"#2563eb");
+        add(50,49,6.2,"#ef4444");
+        add(69,65,5.9,"#2563eb");
+        break;
+      case 4:
+        add(30,33,5.8,"#2563eb");
+        add(70,33,5.8,"#2563eb");
+        add(30,67,5.8,"#ef4444");
+        add(70,67,5.8,"#ef4444");
+        break;
+      case 5:
+        add(30,32,5.8,"#2563eb");
+        add(70,32,5.8,"#2563eb");
+        add(50,49,6.0,"#ef4444");
+        add(30,67,5.8,"#ef4444");
+        add(70,67,5.8,"#ef4444");
+        break;
+      case 6:
+        add(35,28,5.6,"#ef4444");
+        add(65,28,5.6,"#ef4444");
+        add(35,53,5.6,"#2563eb");
+        add(65,53,5.6,"#2563eb");
+        add(35,73,5.6,"#2563eb");
+        add(65,73,5.6,"#2563eb");
+        break;
+      case 7:
+        add(28,28,5.4,"#ef4444");
+        add(50,39,5.4,"#ef4444");
+        add(72,50,5.4,"#ef4444");
+        add(35,63,5.4,"#2563eb");
+        add(65,63,5.4,"#2563eb");
+        add(35,79,5.4,"#2563eb");
+        add(65,79,5.4,"#2563eb");
+        break;
+      case 8:
+        add(35,28,5.3,"#2563eb");
+        add(65,28,5.3,"#2563eb");
+        add(35,46,5.3,"#2563eb");
+        add(65,46,5.3,"#2563eb");
+        add(35,64,5.3,"#2563eb");
+        add(65,64,5.3,"#2563eb");
+        add(35,82,5.3,"#2563eb");
+        add(65,82,5.3,"#2563eb");
+        break;
+      case 9:
+        add(30,28,5.1,"#2563eb");
+        add(50,28,5.1,"#2563eb");
+        add(70,28,5.1,"#2563eb");
+        add(30,49,5.1,"#ef4444");
+        add(50,49,5.1,"#ef4444");
+        add(70,49,5.1,"#ef4444");
+        add(30,72,5.1,"#2563eb");
+        add(50,72,5.1,"#2563eb");
+        add(70,72,5.1,"#2563eb");
+        break;
+    }
+    return tileBaseSvg(body);
+  }
+
+  function oneSouSvg(){
+    return `
+      <g transform="translate(50 50)">
+        <g opacity="0.98">
+          <circle cx="0" cy="-28" r="8.8" fill="#79ddb1" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="-11" cy="-24" r="8.4" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="11" cy="-24" r="8.4" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="-20" cy="-15" r="7.8" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="0" cy="-15" r="8.3" fill="#70e0aa" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="20" cy="-15" r="7.8" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="-15" cy="-4" r="7.5" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="0" cy="-4" r="8.0" fill="#7be3b3" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="15" cy="-4" r="7.5" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+          <circle cx="0" cy="8" r="7.2" fill="#54c98e" stroke="#15803d" stroke-width="1.1"/>
+        </g>
+        <circle cx="0" cy="-28" r="2.8" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="-11" cy="-24" r="2.6" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="11" cy="-24" r="2.6" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="-20" cy="-15" r="2.4" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="0" cy="-15" r="2.5" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="20" cy="-15" r="2.4" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="-15" cy="-4" r="2.4" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="0" cy="-4" r="2.5" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="15" cy="-4" r="2.4" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <circle cx="0" cy="8" r="2.3" fill="white" stroke="#1f7660" stroke-width="0.8"/>
+        <path d="M-6 7 C -2 20, 0 31, 0 42" fill="none" stroke="#111827" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M6 7 C 2 20, 0 31, 0 42" fill="none" stroke="#111827" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M0 10 C 6 18, 8 29, 7 40" fill="none" stroke="#15803d" stroke-width="4.2" stroke-linecap="round"/>
+        <ellipse cx="2" cy="19" rx="5.5" ry="7.2" fill="#f3f4f6" stroke="#111827" stroke-width="1"/>
+        <circle cx="3.6" cy="18" r="1.1" fill="#111827"/>
+        <path d="M6.5 20 L12.3 22.8 L6.4 25.5 Z" fill="#ef4444"/>
+        <path d="M1 25 C -5 29, -7 34, -8 40" fill="none" stroke="#ef4444" stroke-width="0.9"/>
+        <path d="M5 25 C 10 30, 12 35, 13 40" fill="none" stroke="#ef4444" stroke-width="0.9"/>
+        <path d="M4 8 C 10 1, 18 -2, 24 -4" fill="none" stroke="#15803d" stroke-width="2.9" stroke-linecap="round"/>
+        <ellipse cx="25" cy="-6" rx="5.0" ry="6.5" fill="#f3f4f6" stroke="#111827" stroke-width="1"/>
+        <circle cx="26.4" cy="-7" r="1.0" fill="#111827"/>
+        <path d="M29 -6 L34 -3.4 L29 -0.8 Z" fill="#ef4444"/>
+        <path d="M25 -13 C 23 -18, 21 -21, 18 -24" fill="none" stroke="#15803d" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M28 -13 C 28 -18, 29 -22, 31 -25" fill="none" stroke="#15803d" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M31 -12 C 35 -17, 38 -20, 42 -22" fill="none" stroke="#15803d" stroke-width="1.5" stroke-linecap="round"/>
+      </g>`;
+  }
+
+  function souLayout(rank){
+    return {
+      2:[[36,30,22,false],[54,30,22,false]],
+      3:[[24,28,22,false],[42,28,22,false],[60,28,22,false]],
+      4:[[28,22,22,false],[50,22,22,false],[28,54,22,false],[50,54,22,false]],
+      5:[[20,22,22,false],[40,22,22,false],[60,22,22,false],[30,54,22,false],[50,54,22,true]],
+      6:[[18,19,22,false],[38,19,22,false],[58,19,22,false],[18,51,22,false],[38,51,22,false],[58,51,22,false]],
+      7:[[18,17,21,false],[38,17,21,false],[58,17,21,false],[28,43,21,false],[48,43,21,false],[18,69,21,false],[58,69,21,false]],
+      8:[[18,15,20,false],[38,15,20,false],[58,15,20,false],[18,42,20,false],[58,42,20,false],[18,69,20,false],[38,69,20,false],[58,69,20,false]],
+      9:[[18,15,20,false],[38,15,20,false],[58,15,20,false],[18,42,20,false],[38,42,20,true],[58,42,20,false],[18,69,20,false],[38,69,20,false],[58,69,20,false]],
+    }[rank];
+  }
+
+  function souSvg(rank){
+    let content = "";
+    const add = (x,y,h,accent=false) => content += bamboo(x,y,h,accent);
+    if(rank===1){
+      return tileBaseSvg(oneSouSvg());
+    }
+    switch(rank){
+      case 2:
+        add(45,28,22,false);
+        add(45,62,22,false);
+        break;
+      case 3:
+        add(45,22,22,false);
+        add(26,58,22,false);
+        add(64,58,22,false);
+        break;
+      case 4:
+        add(27,27,22,false);
+        add(63,27,22,false);
+        add(27,61,22,false);
+        add(63,61,22,false);
+        break;
+      case 5:
+        add(27,23,22,false);
+        add(63,23,22,false);
+        add(45,48,22,true);
+        add(27,73,22,false);
+        add(63,73,22,false);
+        break;
+      case 6:
+        add(20,27,21,false);
+        add(45,27,21,false);
+        add(70,27,21,false);
+        add(20,61,21,false);
+        add(45,61,21,false);
+        add(70,61,21,false);
+        break;
+      case 7:
+        add(45,18,21,true);
+        add(20,48,21,false);
+        add(45,48,21,false);
+        add(70,48,21,false);
+        add(20,76,21,false);
+        add(45,76,21,false);
+        add(70,76,21,false);
+        break;
+      case 8:
+        // 上下の山形（見本寄り）
+        content += `
+          <g transform="translate(0 6)">
+            <g fill="#18a05b" stroke="#0f8a50" stroke-width="1">
+              <rect x="22" y="28" width="10" height="21" rx="3"/>
+              <rect x="68" y="28" width="10" height="21" rx="3"/>
+              <path d="M32 38 L50 24 L68 38" fill="none" stroke="#18a05b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="22" y="72" width="10" height="21" rx="3"/>
+              <rect x="68" y="72" width="10" height="21" rx="3"/>
+              <path d="M32 74 L50 88 L68 74" fill="none" stroke="#18a05b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            <circle cx="41" cy="31" r="1.2" fill="#d1fae5"/><circle cx="50" cy="24" r="1.2" fill="#d1fae5"/><circle cx="59" cy="31" r="1.2" fill="#d1fae5"/>
+            <circle cx="41" cy="81" r="1.2" fill="#d1fae5"/><circle cx="50" cy="88" r="1.2" fill="#d1fae5"/><circle cx="59" cy="81" r="1.2" fill="#d1fae5"/>
+          </g>`;
+        return tileBaseSvg(content);
+      case 9:
+        add(20,23,20,false);
+        add(45,23,20,true);
+        add(70,23,20,false);
+        add(20,50,20,false);
+        add(45,50,20,true);
+        add(70,50,20,false);
+        add(20,77,20,false);
+        add(45,77,20,true);
+        add(70,77,20,false);
+        break;
+    }
+    return tileBaseSvg(content);
+  }
+
+  function honorSvg(tile){
+    if(tile.honor === "blank") return tileBaseSvg("");
+    const styleMap = {
+      east:  {x:50, y:78, size:39, skew:-8, rot:-1, color:"#111111"},
+      south: {x:51, y:79, size:39, skew:-9, rot: 0, color:"#111111"},
+      west:  {x:49, y:78, size:40, skew:-7, rot:-1, color:"#111111"},
+      north: {x:51, y:79, size:39, skew:-8, rot: 0, color:"#111111"},
+      green: {x:51, y:79, size:40, skew:-7, rot: 0, color:"#059669"},
+      red:   {x:51, y:79, size:40, skew:-7, rot: 0, color:"#e11d48"}
+    };
+    const s = styleMap[tile.code] || styleMap[tile.honor] || {x:50,y:79,size:39,skew:-8,rot:0,color:"#111111"};
+    const body = `
+      <g transform="translate(0 4)">
+        <g transform="translate(${s.x} ${s.y}) rotate(${s.rot}) skewX(${s.skew})">
+          <text x="0" y="0" text-anchor="middle" font-size="${s.size}" font-weight="700" fill="${s.color}" stroke="${s.color}" stroke-width="0.8"
+            font-family="'Hiragino Mincho ProN','Yu Mincho','MS Mincho',serif">${tile.char}</text>
+        </g>
+      </g>`;
+    return tileBaseSvg(body);
+  }
+
+  function tileMarkup(code){
+    const tile = TILE_MAP[code];
+    let svg = "";
+    if(tile.suit === "man") svg = manSvg(tile.rank);
+    else if(tile.suit === "pin") svg = pinSvg(tile.rank);
+    else if(tile.suit === "sou") svg = souSvg(tile.rank);
+    else svg = honorSvg(tile);
+    return `<div class="svgWrap">${svg}</div>`;
+  }
+
+  function render(){
+    boardEl.innerHTML="";
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const t=board[r][c];
+      const elBtn=document.createElement("button");
+      elBtn.className="tile";
+      elBtn.dataset.r=r;
+      elBtn.dataset.c=c;
+      if(!t.active) elBtn.classList.add("removed");
+      elBtn.innerHTML = tileMarkup(t.value);
+      elBtn.setAttribute("aria-label", TILE_MAP[t.value].name);
+      elBtn.title = TILE_MAP[t.value].name;
+      elBtn.addEventListener("click",()=>clickTile(r,c));
+      t.el=elBtn;
+      boardEl.appendChild(elBtn);
+    }
+  }
+
+  function refreshTiles(){
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const t=board[r][c];
+      t.el.classList.toggle("removed",!t.active);
+      t.el.classList.remove("selected","hint");
+    }
+  }
+
+  function clickTile(r,c){
+    if(locked||ended) return;
+    const t=board[r][c];
+    if(!t.active) return;
+    clearHints();
+
+    if(selected && selected.r===r && selected.c===c){
+      t.el.classList.remove("selected");
+      selected=null;
+      message("選択を解除しました。");
+      return;
+    }
+
+    if(!selected){
+      selected={r,c};
+      t.el.classList.add("selected");
+      message("同じ牌をもう1枚選んでください。");
+      return;
+    }
+
+    const a=selected, ta=board[a.r][a.c];
+    ta.el.classList.remove("selected");
+
+    if(ta.value!==t.value){
+      selected={r,c};
+      t.el.classList.add("selected");
+      message("牌が違います。新しい牌を選択しました。");
+      return;
+    }
+
+    const b={r,c}, path=findPath(a,b);
+    if(!path){
+      selected=b;
+      t.el.classList.add("selected");
+      message("その2枚は曲がり2回以内ではつなげません。");
+      return;
+    }
+
+    selected=null;
+    removePair(a,b,path);
+  }
+
+  function buildGrid(){
+    const g=Array.from({length:ROWS+2},()=>Array(COLS+2).fill(0));
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(board[r][c].active)g[r+1][c+1]=1;
+    return g;
+  }
+
+  function findPath(a,b){
+    const grid=buildGrid(), sr=a.r+1, sc=a.c+1, tr=b.r+1, tc=b.c+1, R=ROWS+2, C=COLS+2;
+    const q=[], best=Array.from({length:R},()=>Array.from({length:C},()=>Array(4).fill(99)));
+
+    for(let d=0;d<4;d++){
+      const nr=sr+dirs[d][0], nc=sc+dirs[d][1];
+      if(nr<0||nr>=R||nc<0||nc>=C) continue;
+      if(grid[nr][nc]===1 && !(nr===tr&&nc===tc)) continue;
+      best[nr][nc][d]=0;
+      q.push({r:nr,c:nc,d,turns:0,prev:null});
+    }
+
+    let qi=0;
+    while(qi<q.length){
+      const cur=q[qi++];
+      if(cur.r===tr&&cur.c===tc){
+        const cells=[{r:sr,c:sc}], rev=[]; let p=cur;
+        while(p){ rev.push({r:p.r,c:p.c}); p=p.prev; }
+        rev.reverse();
+        cells.push(...rev);
+        return compressPath(cells);
+      }
+      for(let nd=0;nd<4;nd++){
+        const nt=cur.turns+(nd===cur.d?0:1);
+        if(nt>2) continue;
+        const nr=cur.r+dirs[nd][0], nc=cur.c+dirs[nd][1];
+        if(nr<0||nr>=R||nc<0||nc>=C) continue;
+        if(grid[nr][nc]===1 && !(nr===tr&&nc===tc)) continue;
+        if(best[nr][nc][nd]<=nt) continue;
+        best[nr][nc][nd]=nt;
+        q.push({r:nr,c:nc,d:nd,turns:nt,prev:cur});
+      }
+    }
+    return null;
+  }
+
+  function compressPath(cells){
+    if(cells.length<=2) return cells;
+    const out=[cells[0]];
+    let ldr=null, ldc=null;
+    for(let i=1;i<cells.length;i++){
+      const dr=cells[i].r-cells[i-1].r, dc=cells[i].c-cells[i-1].c;
+      if(ldr!==null && (dr!==ldr || dc!==ldc)) out.push(cells[i-1]);
+      ldr=dr; ldc=dc;
+    }
+    out.push(cells[cells.length-1]);
+    return out;
+  }
+
+  function pathToPixels(path){
+    const br=boardEl.getBoundingClientRect();
+    const sr=shellEl.getBoundingClientRect();
+    const tr=board[0][0].el.getBoundingClientRect();
+    const cs=getComputedStyle(boardEl);
+    const sx=tr.width+parseFloat(cs.columnGap||0);
+    const sy=tr.height+parseFloat(cs.rowGap||0);
+    const ox=br.left-sr.left, oy=br.top-sr.top;
+    return path.map(p=>`${ox+(p.c-1)*sx+tr.width/2},${oy+(p.r-1)*sy+tr.height/2}`).join(" ");
+  }
+
+  function snapshot(){ return board.map(row=>row.map(t=>t.active)); }
+
+  function pairKey(a,b){
+    const x=a.r*COLS+a.c, y=b.r*COLS+b.c;
+    return x<y?`${x}-${y}`:`${y}-${x}`;
+  }
+
+  
+function snapshotState(actionType){
+    return {
+      type:actionType,
+      board:board.map(row=>row.map(t=>({value:t.value,active:t.active}))),
+      moves,
+      remaining
+    };
+  }
+
+  function recordAction(actionType){
+    actionHistory.push(snapshotState(actionType));
+    if(actionHistory.length>100) actionHistory.shift();
+    updateUndoButtons();
+  }
+
+  function updateUndoButtons(){
+    const disabled = actionHistory.length===0;
+    if(undoBtn) undoBtn.disabled=disabled;
+    if(undoNoMovesBtn) undoNoMovesBtn.disabled=disabled;
+  }
+
+  function restoreState(state){
+    clearHints();
+    selected=null;
+    moves=state.moves;
+    remaining=state.remaining;
+    locked=false;
+    ended=false;
+    hintBtn.disabled=false;
+    noMovesOverlay.classList.remove("show");
+    resultEl.classList.remove("show");
+
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        board[r][c].value=state.board[r][c].value;
+        board[r][c].active=state.board[r][c].active;
+      }
+    }
+    render();
+    updateStats();
+    pathLine.setAttribute("points","");
+  }
+
+  function undoLastAction(){
+    if(actionHistory.length===0) return;
+    const state=actionHistory.pop();
+    restoreState(state);
+    updateUndoButtons();
+    message(state.type==="shuffle"
+      ? "直前のシャッフル前の状態に戻しました。"
+      : "直前に消した2枚を元に戻しました。");
+  }
+
+  async function requestGameFullscreen(){
+    const root=document.documentElement;
+    try{
+      if(document.fullscreenElement){
+        await document.exitFullscreen();
+        message("全画面表示を終了しました。");
+        return;
+      }
+      const request = root.requestFullscreen || root.webkitRequestFullscreen;
+      if(request){
+        root.classList.add("fullscreen-game");
+        const result=request.call(root);
+        if(result && typeof result.then==="function") await result;
+        message("全画面表示に切り替えました。");
+        return;
+      }
+    }catch(e){
+      // 下の案内へフォールバック
+    }
+
+    const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+    if(standalone){
+      message("ホーム画面版はブラウザUIなしで表示されています。");
+    }else{
+      fullscreenHelp.classList.add("show");
+    }
+  }
+
+  function removePair(a,b,path){
+    recordAction("remove");
+    locked=true;
+    pathLine.setAttribute("points",pathToPixels(path));
+    message("消去できます。");
+    setTimeout(()=>{
+      board[a.r][a.c].active=false;
+      board[b.r][b.c].active=false;
+      board[a.r][a.c].el.classList.add("removed");
+      board[b.r][b.c].el.classList.add("removed");
+      pathLine.setAttribute("points","");
+      remaining-=2;
+      moves++;
+      updateStats();
+      updateUndoButtons();
+      locked=false;
+      if(remaining===0){ finishClear(); return; }
+      if(!findAnyMove()){
+        showNoMovesChoice();
+        return;
+      }
+      message("同じ麻雀牌を2枚選んでください。");
+    },260);
+  }
+
+  function allActive(){
+    const out=[];
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(board[r][c].active)out.push({r,c,value:board[r][c].value});
+    return out;
+  }
+
+  function findAnyMove(){
+    const by=new Map();
+    for(const x of allActive()){
+      if(!by.has(x.value)) by.set(x.value,[]);
+      by.get(x.value).push(x);
+    }
+    for(const arr of by.values()) for(let i=0;i<arr.length;i++) for(let j=i+1;j<arr.length;j++){
+      if(findPath(arr[i],arr[j])) return [arr[i],arr[j]];
+    }
+    return null;
+  }
+
+  function reshuffleValues(showMsg=true,record=true){
+    if(locked||ended) return;
+    if(record) recordAction("shuffle");
+    clearHints();
+    if(selected){
+      board[selected.r][selected.c].el.classList.remove("selected");
+      selected=null;
+    }
+    const active=allActive();
+    const vals=shuffle(active.map(x=>x.value));
+    active.forEach((x,i)=>{
+      board[x.r][x.c].value=vals[i];
+      board[x.r][x.c].el.innerHTML=tileMarkup(vals[i]);
+      board[x.r][x.c].el.setAttribute("aria-label", TILE_MAP[vals[i]].name);
+      board[x.r][x.c].el.title=TILE_MAP[vals[i]].name;
+    });
+    if(showMsg) message("残っている牌をシャッフルしました。");
+  }
+
+  function ensureAnyMove(){
+    let tries=0;
+    while(remaining>0 && !findAnyMove() && tries<100){
+      reshuffleValues(false,false);
+      tries++;
+    }
+  }
+
+  function showNoMovesChoice(){
+    clearHints();
+    if(selected){
+      board[selected.r][selected.c].el.classList.remove("selected");
+      selected=null;
+    }
+    locked=true;
+    message("消せる組み合わせがありません。");
+    updateUndoButtons();
+    noMovesOverlay.classList.add("show");
+  }
+
+  function shuffleAndContinue(){
+    noMovesOverlay.classList.remove("show");
+    locked=false;
+    reshuffleValues(false,true);
+    ensureAnyMove();
+    if(findAnyMove()){
+      message("牌をシャッフルしました。ゲームを続けてください。");
+    }else{
+      // 極めて稀に再配置しても手が作れなかった場合は、選択画面へ戻す。
+      showNoMovesChoice();
+    }
+  }
+
+  function endFromNoMoves(){
+    noMovesOverlay.classList.remove("show");
+    clearInterval(timerId);
+    ended=true;
+    locked=true;
+    hintBtn.disabled=true;
+    resultTitle.textContent="ゲーム終了";
+    resultText.textContent=`残り ${remaining/2}ペア / ${moves}回消去したところで終了しました。`;
+    resultEl.classList.add("show");
+    message("ゲームを終了しました。");
+  }
+
+  function countActive(){
+    let n=0;
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(board[r][c].active)n++;
+    return n;
+  }
+
+
+  function finishClear(){
+    clearInterval(timerId);
+    ended=true;
+    locked=true;
+    hintBtn.disabled=true;
+    const sec=Math.floor((Date.now()-startTime)/1000);
+    resultTitle.textContent="クリア！";
+    resultText.textContent=`${formatTime(sec)} / ${moves}回で全ての牌を消しました。`;
+    resultEl.classList.add("show");
+    message("全消し達成！");
+  }
+
+  function hint(){
+    if(locked||ended) return;
+    clearHints();
+    const p=findAnyMove();
+    if(!p){
+      showNoMovesChoice();
+      return;
+    }
+    p.forEach(x=>board[x.r][x.c].el.classList.add("hint"));
+    message("緑色に光っている2枚が消せます。");
+    setTimeout(clearHints,2200);
+  }
+
+  function clearHints(){ document.querySelectorAll(".tile.hint").forEach(e=>e.classList.remove("hint")); }
+  function updateStats(){ pairsEl.textContent=remaining/2; movesEl.textContent=moves; }
+  function updateTimer(){ if(!ended) timeEl.textContent=formatTime(Math.floor((Date.now()-startTime)/1000)); }
+  function formatTime(sec){ return `${Math.floor(sec/60).toString().padStart(2,"0")}:${(sec%60).toString().padStart(2,"0")}`; }
+  function message(t){ messageEl.textContent=t; }
+
+  document.getElementById("newBtn").addEventListener("click",newGame);
+  document.getElementById("hintBtn").addEventListener("click",hint);
+  document.getElementById("shuffleBtn").addEventListener("click",()=>{ reshuffleValues(true,true); ensureAnyMove(); });
+  document.getElementById("againBtn").addEventListener("click",newGame);
+  undoBtn.addEventListener("click",undoLastAction);
+  undoNoMovesBtn.addEventListener("click",undoLastAction);
+  fullscreenBtn.addEventListener("click",requestGameFullscreen);
+  closeFullscreenHelpBtn.addEventListener("click",()=>fullscreenHelp.classList.remove("show"));
+  shuffleContinueBtn.addEventListener("click",shuffleAndContinue);
+  endNoMovesBtn.addEventListener("click",endFromNoMoves);
+  function clearPathForViewportChange(){ pathLine.setAttribute("points",""); }
+  window.addEventListener("resize",clearPathForViewportChange);
+  window.addEventListener("orientationchange",clearPathForViewportChange);
+
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone===true;
+  if(isStandalone){
+    fullscreenBtn.textContent="全画面中";
+  }
+
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+  }
+
+  newGame();
+})();
+</script>
+</body>
+</html>
