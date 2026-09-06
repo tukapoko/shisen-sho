@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="四川省">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>四川省 - iPhone全画面対応版 V18</title>
+<title>四川省 - iPhone全画面対応版 V19</title>
 <style>
 :root{
   --cols:12;
@@ -165,7 +165,7 @@ button.ui:disabled{opacity:.45;cursor:default;transform:none}
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:3px;
-    margin-top:6px;
+    margin-top:1px;
   }
   .stat{min-width:0;padding:4px 2px;border-radius:7px}
   .stat b{font-size:14px;line-height:1.05}
@@ -212,7 +212,7 @@ button.ui:disabled{opacity:.45;cursor:default;transform:none}
       縦方向の中央配置をやめて上端から安全な余白を取って固定。
     */
     left:calc((100% - 162px) / 2);
-    top:6px;
+    top:1px;
     transform:translateX(-50%);
     padding:3px;
     border-radius:9px;
@@ -291,15 +291,26 @@ button.ui:disabled{opacity:.45;cursor:default;transform:none}
   :root{
     /*
       8段が確実に画面内へ収まるサイズ。
-      V16より牌そのものはわずかに小さくするだけで、
-      牌間隔を1pxへ詰めて表示面積を確保する。
+      iPhone 12では見やすい大きさを維持し、
+      短い画面では別のmedia queryで必要最小限だけ縮小する。
     */
     --gap:1px;
     --tile-w:min(38px,4.5vw,8.7dvh);
     --tile-h:calc(var(--tile-w) * 1.34);
   }
-  .board-shell{top:6px}
+  .board-shell{top:1px}
 }
+
+/* iPhone 12 miniなど、横向き時の縦幅が狭い端末だけ少し縮小 */
+@media (orientation:landscape) and (pointer:coarse) and (display-mode:standalone) and (max-height:380px){
+  :root{
+    --gap:1px;
+    --tile-w:min(37px,4.4vw,8.35dvh);
+    --tile-h:calc(var(--tile-w) * 1.34);
+  }
+  .board-shell{top:1px}
+}
+
 html.fullscreen-game:fullscreen,
 html.fullscreen-game:fullscreen body{
   width:100%;
@@ -309,7 +320,7 @@ html.fullscreen-game:fullscreen body{
   background:linear-gradient(145deg,#071a17,#123f35 55%,#0b2922);
 }
 html.fullscreen-game:fullscreen .board-shell{
-  top:6px;
+  top:1px;
   transform:translateX(-50%);
 }
 .fullscreen-guide{
@@ -335,7 +346,7 @@ html.fullscreen-game:fullscreen .board-shell{
   <header>
     <div>
       <h1>四川省</h1>
-      <div class="sub">麻雀牌版 / iPhone全画面対応 V18</div>
+      <div class="sub">麻雀牌版 / iPhone全画面対応 V19</div>
     </div>
     <div class="stats">
       <div class="stat"><b id="pairs">48</b><span>残りペア</span></div>
@@ -498,16 +509,16 @@ html.fullscreen-game:fullscreen .board-shell{
       const px = Math.cos(a) * size * 0.96;
       const py = Math.sin(a) * size * 0.96;
       const pc = i % 2 === 0 ? color : accent;
-      petals += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="${(size*0.14).toFixed(2)}" fill="${pc}"/>`;
+      petals += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="${(size*0.18).toFixed(2)}" fill="${pc}"/>`;
     }
     return `
       <g transform="translate(${x} ${y})">
-        <circle cx="0" cy="0" r="${(size*1.08).toFixed(2)}" fill="white" stroke="#d4d8de" stroke-width="0.8"/>
+        <circle cx="0" cy="0" r="${(size*1.08).toFixed(2)}" fill="white" stroke="#c9ced8" stroke-width="1.05"/>
         ${petals}
-        <circle cx="0" cy="0" r="${(size*0.90).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.19).toFixed(2)}"/>
-        <circle cx="0" cy="0" r="${(size*0.56).toFixed(2)}" fill="white" stroke="${accent}" stroke-width="${(size*0.09).toFixed(2)}" stroke-dasharray="${(size*0.24).toFixed(2)} ${(size*0.12).toFixed(2)}" stroke-linecap="round"/>
-        <circle cx="0" cy="0" r="${(size*0.27).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.08).toFixed(2)}"/>
-        <circle cx="0" cy="0" r="${(size*0.12).toFixed(2)}" fill="${accent}"/>
+        <circle cx="0" cy="0" r="${(size*0.90).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.27).toFixed(2)}"/>
+        <circle cx="0" cy="0" r="${(size*0.56).toFixed(2)}" fill="white" stroke="${accent}" stroke-width="${(size*0.14).toFixed(2)}" stroke-dasharray="${(size*0.25).toFixed(2)} ${(size*0.11).toFixed(2)}" stroke-linecap="round"/>
+        <circle cx="0" cy="0" r="${(size*0.27).toFixed(2)}" fill="white" stroke="${color}" stroke-width="${(size*0.12).toFixed(2)}"/>
+        <circle cx="0" cy="0" r="${(size*0.15).toFixed(2)}" fill="${accent}"/>
       </g>`;
   }
 
@@ -539,8 +550,14 @@ html.fullscreen-game:fullscreen .board-shell{
     const big = NUM_JP[rank];
     return tileBaseSvg(`
       <g transform="translate(0 4)">
-        <text x="50" y="56" text-anchor="middle" font-size="34" font-weight="700" fill="#111827" font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">${big}</text>
-        <text x="50" y="88" text-anchor="middle" font-size="24" font-weight="700" fill="#d62839" font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">萬</text>
+        <text x="50" y="56" text-anchor="middle"
+          font-size="34" font-weight="900"
+          fill="#111827" stroke="#111827" stroke-width="0.55" paint-order="stroke fill"
+          font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">${big}</text>
+        <text x="50" y="88" text-anchor="middle"
+          font-size="24" font-weight="900"
+          fill="#d62839" stroke="#d62839" stroke-width="0.45" paint-order="stroke fill"
+          font-family="'Yu Mincho','Hiragino Mincho ProN','MS Mincho',serif">萬</text>
       </g>
     `);
   }
@@ -1194,7 +1211,7 @@ function snapshotState(actionType){
       reloadingForNewWorker = true;
 
       // 同じ更新で繰り返し再読込しないようにする。
-      const reloadKey = "shisen-sw-reloaded-v18";
+      const reloadKey = "shisen-sw-reloaded-v19";
       if(sessionStorage.getItem(reloadKey) !== "1"){
         sessionStorage.setItem(reloadKey,"1");
         location.reload();
