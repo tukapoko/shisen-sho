@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="四川省">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>四川省 - iPhone全画面対応版 V17</title>
+<title>四川省 - iPhone全画面対応版 V18</title>
 <style>
 :root{
   --cols:12;
@@ -335,7 +335,7 @@ html.fullscreen-game:fullscreen .board-shell{
   <header>
     <div>
       <h1>四川省</h1>
-      <div class="sub">麻雀牌版 / iPhone全画面対応 V17</div>
+      <div class="sub">麻雀牌版 / iPhone全画面対応 V18</div>
     </div>
     <div class="stats">
       <div class="stat"><b id="pairs">48</b><span>残りペア</span></div>
@@ -1186,7 +1186,43 @@ function snapshotState(actionType){
   }
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-    window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+    let swRegistration = null;
+    let reloadingForNewWorker = false;
+
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(reloadingForNewWorker) return;
+      reloadingForNewWorker = true;
+
+      // 同じ更新で繰り返し再読込しないようにする。
+      const reloadKey = "shisen-sw-reloaded-v18";
+      if(sessionStorage.getItem(reloadKey) !== "1"){
+        sessionStorage.setItem(reloadKey,"1");
+        location.reload();
+      }
+    });
+
+    window.addEventListener("load",async()=>{
+      try{
+        swRegistration = await navigator.serviceWorker.register("./sw.js",{
+          updateViaCache:"none"
+        });
+
+        // Safariが古いsw.jsを長く保持しないよう、起動時に更新確認。
+        await swRegistration.update();
+
+        // 待機中のWorkerがいた場合も即時切替を要求。
+        if(swRegistration.waiting){
+          swRegistration.waiting.postMessage({type:"SKIP_WAITING"});
+        }
+      }catch(e){
+        console.warn("Service Worker registration failed:",e);
+      }
+    });
+
+    // PWAへ戻った時にも最新版を確認。
+    window.addEventListener("pageshow",()=>{
+      if(swRegistration) swRegistration.update().catch(()=>{});
+    });
   }
 
   newGame();
